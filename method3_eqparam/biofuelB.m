@@ -17,7 +17,7 @@ alpha_p = 0.01;
 k_p     = 0.20;
 gamma_I = 60;
 I       = 1000;
-% repressor parameters (fixed -- not uncertain, so R_bar is constant)
+% repressor parameters 
 alpha_R = 0.01;
 beta_R  = 2.1;
 k_R     = 10;
@@ -28,8 +28,7 @@ rho = 0.20;
 phi_fun = @(gp, pb) gp ./ (pb + gp).^2;                         % phi_p
 psi_fun = @(kp, kb, gR, Rb, bb) ...                             % psi_b = d(pdot)/d(b_i)
           kp .* Rb .* kb ./ ((Rb ./ (1 + kb.*bb) + gR).^2 .* (1 + kb.*bb).^2);
-% Repressor steady state -- FIXED (alpha_R, beta_R, k_R, I, gamma_I are all
-% fixed, so R_bar has no uncertain inputs left and never varies).
+% Repressor steady state
 R_bar = (alpha_R + k_R*(I/(I + gamma_I))) / beta_R;
 fprintf('Fixed repressor steady state:  R_bar = %.6f  (constant, not swept)\n\n', R_bar);
 % Nominal equilibrium
@@ -48,8 +47,7 @@ fprintf('Nominal equilibrium:\n');
 fprintf('  n_bar  = %.6f\n', n_bar);
 fprintf('  p_bar  = %.6f\n', p_bar);
 fprintf('  bi_bar = %.6f\n', bi_bar);
-% Swept equilibrium box over the +/-20% parameter box (9 kinetic parameters
-% only -- alpha_R, beta_R, k_R, alpha_p are fixed), then MIDPOINT anchor.
+% Swept equilibrium box over the +/-20% parameter box 
 % extremes confirmed at the corners against a 50000-point interior check
 n_bar_lo = 0.0724;  n_bar_hi = 0.2909;
 p_bar_lo = 0.0957;  p_bar_hi = 0.2978;
@@ -57,11 +55,11 @@ b_bar_lo = 0.0751;  b_bar_hi = 0.4954;
 n_ctr = 0.5*(n_bar_lo + n_bar_hi);   rho_n_bar = 0.5*(n_bar_hi - n_bar_lo)/n_ctr;
 p_ctr = 0.5*(p_bar_lo + p_bar_hi);   rho_p_bar = 0.5*(p_bar_hi - p_bar_lo)/p_ctr;
 b_ctr = 0.5*(b_bar_lo + b_bar_hi);   rho_b_bar = 0.5*(b_bar_hi - b_bar_lo)/b_ctr;
-% Anchor equilibrium = midpoints (kinetic parameters stay at nominal)
+% Anchor equilibrium = midpoints 
 n_bar  = n_ctr;
 p_bar  = p_ctr;
 bi_bar = b_ctr;
-% R_bar is NOT re-anchored -- it stays at its fixed value from above.
+
 fprintf('\nAnchoring at equilibrium-box midpoint:\n');
 fprintf('  n_ctr  = %.6f   interval [%.4f, %.4f]\n', n_bar,  n_bar_lo, n_bar_hi);
 fprintf('  p_ctr  = %.6f   interval [%.4f, %.4f]\n', p_bar,  p_bar_lo, p_bar_hi);
