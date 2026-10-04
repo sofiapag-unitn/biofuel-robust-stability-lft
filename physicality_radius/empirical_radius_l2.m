@@ -9,17 +9,7 @@ close all;
 %    'B_total'   Model B, LFT total derivative   m = 9
 %    'B_eqparam' Model B, LFT eq.-as-parameter   m = 12  (9 kin + 3 eq coords; R_bar fixed, not swept)
 %    'B_bdc'     Model B, BDC ranges             m = 8
-%
-%  NEW: physicality-aware radius. mu/gamma certificates are purely
-%  algebraic statements about the LFT -- they know nothing about D_i,
-%  equilibrium coordinates, or kinetic parameters needing to stay
-%  positive. For 'bdc' and 'eqparam', each swept quantity is built
-%  directly as mid +/- hw*delta with NO other gate in evalexp, so the
-%  dilation at which it first goes non-positive is EXACT and closed-form:
-%  alpha = mid_i/hw_i, minimized over channels i. For 'kinetic' there is
-%  an extra, non-closed-form gate (the re-solved equilibrium), so instead
-%  the empirical wall is read directly off the box sweep's own non-
-%  physical-corner count, which the loop below was already computing.
+
 experiment = 'A_bdc';     % <-- SELECT HERE
 rho        = 0.20;
 alpha_grid = [0.5 0.8 1.0 1.2 1.5 2.0 2.5 3.0 3.5 4.0 4.5 5.0 5.5 6.0];
@@ -35,16 +25,15 @@ switch model
 case 'A'
         theta_nom = [0.66 0.91 0.14 0.66 0.10 0.50];          % 6 kinetics
         m_kin = 6;  m_eq = 3;  q = 7;
-        % Equilibrium box from modelA_openloop_check.m, 6-parameter box (confirmed)
+        % Equilibrium box from modelA_openloop_check.m, 6-parameter box
         eqmin = [0.0866 0.2509 0.0469];                       % n,p,b
         eqmax = [0.2694 0.3763 0.2285];
         R_fixed = NaN;   % unused for Model A
 case 'B'
         theta_nom = [0.66 0.91 0.14 0.66 0.10 0.50 0.20 100 1.8];  % 9 kinetics
         m_kin = 9;  m_eq = 3;  q = 8;
-        % Equilibrium box from modelB_closedloop_check.m, 9-parameter box (confirmed).
-        % R_bar is now held FIXED at its closed-form nominal value and is no
-        % longer swept, so it is NOT one of the equilibrium channels below.
+        % Equilibrium box from modelB_closedloop_check.m, 9-parameter box 
+        % R_bar is held FIXED 
         eqmin = [0.0724 0.0957 0.0751];                       % n,p,b
         eqmax = [0.2909 0.2978 0.4954];
         a_R=0.01; k_R=10; g_I=60; I=1000; b_R=2.1;
@@ -54,12 +43,9 @@ mid_eq = (eqmin+eqmax)/2;  hw_eq = (eqmax-eqmin)/2;
 % BDC structural matrices and D-box
 [Bs, Cs] = bdc_BC(model);
 [midD, hwD, Dnom] = bdc_Dbox(model, theta_nom, rho, m_kin);
-% ---- Closed-form physicality walls (alpha units), where they exist ----
-% Kinetic parameters all share one rho, so their own (necessary, but not
-% sufficient -- see the caveat printed below) positivity wall is 1/rho.
+
 alpha_phys_kin = 1/rho;
 % eq-as-parameter and BDC each hit zero exactly at mid_i/hw_i per channel,
-% since evalexp builds them as mid + hw.*delta with no other gate.
 alpha_phys_eq  = min(mid_eq ./ hw_eq);
 alpha_phys_bdc = min(midD   ./ hwD);
 switch method
@@ -103,7 +89,7 @@ fprintf('--- BOX (inf-norm) sweep : worst over %d corners + %d interior draws --
 fprintf('   %7s %14s %10s %10s %12s %10s %14s\n','alpha','worst maxRe','#unst(cor)','#nphys(cor)','P(stab,MC)','#loc.unst','worst(loc)');
 Krefine   = 20;    % nearby points tested around each unstable MC hit
 eps_local = 0.02;  % size of that local neighborhood, in normalized delta units
-alpha_wall_empirical = NaN;   % NEW: first alpha (grid resolution) where any corner is non-physical
+alpha_wall_empirical = NaN;   
 for a = alpha_grid
     worst=-inf; nun=0; nbad=0;
 for c=1:nC
@@ -112,7 +98,7 @@ if ~ok, nbad=nbad+1; continue; end
 if mr>=0, nun=nun+1; end
 if mr>worst, worst=mr; end
 end
-if isnan(alpha_wall_empirical) && nbad>0     % NEW: capture the empirical wall
+if isnan(alpha_wall_empirical) && nbad>0     
         alpha_wall_empirical = a;
 end
     nok=0; nunm=0;
@@ -124,7 +110,7 @@ if ~ok, continue; end
         nok=nok+1;
 if mr>=0
             nunm=nunm+1;
-% found an unstable interior point -- probe its neighborhood
+% found an unstable interior point, probe its neighborhood
 for j=1:Krefine
                 delta_local = delta0 + eps_local*(2*rand(1,m)-1);
                 [mr_loc, ok_loc] = evalexp(delta_local, method, S);
@@ -158,7 +144,7 @@ fprintf('\n--- Certified vs empirical (Model %s, %s, m=%d) ---\n', model, method
 fprintf('  BOX    : certified 1/mu_sup    = %.4f   (covered iff >= 1)\n', muInv);
 fprintf('  SPHERE : certified 1/gamma_sup = %.4f   (box covered iff >= sqrt(m) = %.4f)\n', gamInv, sqrt_m);
 fprintf('  Empirical radius = scale at which P(stable) drops below 1 / nonphysical sets in.\n');
-% ---- NEW: physicality-aware radius report ----
+
 fprintf('\n--- Physicality-aware radius (box, alpha units) ---\n');
 if phys_exact
     fprintf('  Closed-form physicality wall = %.4f   (%s)\n', alpha_phys_closed, phys_note);
@@ -172,8 +158,7 @@ else
 end
 alpha_phys_report = alpha_phys_closed;
 if ~phys_exact && ~isnan(alpha_wall_empirical)
-% kinetic method: the closed form is only a (possibly loose) upper
-% reference -- prefer the empirical wall if it is smaller / available.
+
     alpha_phys_report = min(alpha_phys_closed, alpha_wall_empirical);
 end
 radius = min(muInv, alpha_phys_report);
@@ -243,13 +228,7 @@ else
         f = @(x)[ x(1)*(a_n*(1 - x(1)/nmax) - d_n*x(3) - a_n*x(2)/(x(2)+g_p));
                   a_p + k_p/(R/(1+k_b*x(3)) + g_R) - b_p*x(2);
                   a_b*x(1) - d_b*x(2)*x(3) ];
-% FIX: fsolve's default FunctionTolerance (~1e-6 for the default
-% trust-region-dogleg algorithm on a square system) is looser than
-% the 1e-8 sanity check below, so a solve fsolve calls "converged"
-% (flag>0) can still fail that check purely on solver noise -- not
-% because the equilibrium is actually bad. Tighten fsolve's own
-% tolerances so flag>0 reliably implies a residual well under 1e-8;
-% the 1e-8 check then only rejects genuinely bad solves.
+
         opts = optimoptions('fsolve','Display','off', ...
 'FunctionTolerance',1e-12,'OptimalityTolerance',1e-12,'StepTolerance',1e-12);
         [xb,fval,flag] = fsolve(f, [0.17;0.17;0.21], opts);
