@@ -72,7 +72,7 @@ The remainder is estimated two ways and combined entrywise:
 - **Way A — residual sampling:** the true Jacobian (equilibrium re-solved with `fsolve`) is compared with the affine surrogate over box corners and Monte Carlo draws.
 - **Way B — analytic curvature:** the total-derivative operator is applied a second time to obtain a Hessian-type bound.
 
-The remainder matrix is folded back into the LFT as one rank-1 real-scalar block per nonzero entry, and `run_mu` evaluates µ and the γ bounds twice. **The baseline run (`A (baseline)`, `B (baseline)`) is the plain total-derivative LFT of Method 4**; the second run (`with remainder`) shows how much of that margin survives once the linearisation error is included. The frequency grid is set in `run_mu` (`w = logspace(-3,3,N)`); the report's total-derivative table uses 25 points.
+The remainder matrix is folded back into the LFT as one rank-1 real-scalar block per nonzero entry, and `run_mu` evaluates µ and the γ bounds twice. **The baseline run (`A (baseline)`, `B (baseline)`) is the plain total-derivative LFT of Method 4**; the second run (`with remainder`) shows how much of that margin survives once the linearisation error is included. The frequency grid is set in `run_mu` (`w = logspace(-3,3,N)`).
 
 `log_uncertainty.m` is the same pipeline with a switch `unc_model`: `'mult'` for `theta = thetabar (1 + rho delta)` and `'log'` for `theta = thetabar exp(rho delta)`, which keeps every parameter positive for any `rho`. The first-order blocks are identical for the two maps; only the curvature differs, and the logarithmic map adds a diagonal correction to the Hessian bound (Section 5.9).
 
