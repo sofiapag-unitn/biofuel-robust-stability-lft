@@ -1,15 +1,5 @@
 function gamma = mu_upper_bound_property2(M, blk)
 % Property 2 (Alamo & Dormido 2001) upper bound to gamma_Delta(M).
-%
-% Robust rewrite of the original:
-%   - NO YALMIP 'optimizer' object (that precompiled path is what crashes
-%     SeDuMi on complex/Hermitian models -> "Unrecognized variable y_s").
-%   - Each feasibility test is a fresh optimize() call.
-%   - Every complex-Hermitian PSD constraint is REAL-EMBEDDED, so SeDuMi
-%     only ever sees a real symmetric cone:
-%         H >= 0   <=>   [Re(H) -Im(H); Im(H) Re(H)] >= 0
-%   - Solver fallback + try/catch so one bad solve can't abort the sweep.
-%
 %   blk(k,:) = [-r 0]  repeated REAL scalar block of size r
 %   blk(k,:) = [ r 0]  repeated COMPLEX scalar block of size r
 
