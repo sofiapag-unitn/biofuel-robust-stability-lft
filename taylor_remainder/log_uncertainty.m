@@ -1,7 +1,6 @@
 clear; clc; close all;
 %  Coupled Parametric LFT:  Biofuel Models A and B
 %  SYMBOLIC TOTAL-DERIVATIVE construction, PLUS a Taylor-form remainder
-%
 %  UNCERTAINTY MODEL  (switchable multiplicative vs. logarithmic)
 %  -------------------------------------------------------------------
 %  unc_model = 'mult'  ->  theta_k = thetabar_k * (1 + rho*delta_k),  delta_k in [-1,1]
@@ -11,17 +10,6 @@ clear; clc; close all;
 %  unc_model = 'log'   ->  theta_k = thetabar_k * exp(rho*delta_k),   delta_k in [-1,1]
 %                          box:  theta_k in thetabar_k*[exp(-rho), exp(rho)]
 %                          strictly positive for EVERY finite rho
-
-%    d/ddelta [ thetabar*(1+rho*delta) ]        |_{delta=0} = rho*thetabar
-%    d/ddelta [ thetabar*exp(rho*delta) ]       |_{delta=0} = rho*thetabar     <- SAME slope
-%  so the first-order LFT blocks W_k (build_lft_sym) are IDENTICAL between the two
-%  models 
-
-%  The two models differ only in CURVATURE:
-%    d2/ddelta2 [ thetabar*(1+rho*delta) ]      = 0           
-%    d2/ddelta2 [ thetabar*exp(rho*delta) ]     |_{delta=0} = rho^2*thetabar   
-%  Because each theta_k depends on its OWN delta_k only, this shows up as an extra
-%  DIAGONAL correction to the Hessian remainder (WAY B)
 
 % SELECT MODEL HERE
 model = 'A';        % 'A'  ->  Model A only  (states [n;p;b],   q = 13)
@@ -87,7 +75,7 @@ if runB
              alpha_p; gamma_I; I; n_max; alpha_R; k_R; beta_R];
     valsB = [0.66; 0.91; 0.14; 0.66; 0.10; 0.50; 0.20; 100; 1.8; ...
              0.01; 60; 1000; 1.0; 0.01; 10; 2.1];
-% equilibrium: R* closed form; n*(p),b*(p) reduce fB(3) to a scalar g(p)=0
+% equilibrium: R* closed form
     RB     = (alpha_R + k_R*(I/(I+gamma_I)))/beta_R;
     n_of_p = (alpha_n*gamma_p/(p+gamma_p)) / (alpha_n/n_max + delta_n*alpha_b/(delta_b*p));
     b_of_p = subs(alpha_b*n/(delta_b*p), n, n_of_p);
@@ -118,17 +106,7 @@ if runB
 end
 
 %  build_lft_sym : symbolic total-derivative LFT, evaluated at xbar
-%  Now also returns Wblk (per-channel full W_k, before SVD splitting) and
-%  a ctx struct bundling everything WAY A / WAY B need.
 
-%  NOTE ON unc_model: this function is UNCHANGED in its math relative to the
-%  original script. W_k = rho*thetabar_k*(dFx/dtheta_k)_total is the exact
-%  first-order (degree-1) term for BOTH the 'mult' and 'log' uncertainty maps,
-%  because both satisfy d(theta_k)/d(delta_k)|_{delta=0} = rho*thetabar_k. The
-%  uncertainty-model choice only changes (a) how WAY A perturbs theta away from
-%  delta=0 (remainder_sampling) and (b) the curvature correction in WAY B
-%  (remainder_hessian). ctx.unc_model is stashed so those two functions know
-%  which map to use.
 function [L_mat, R_mat, blk, J0, q, ranks, ctx] = build_lft_sym(f, x, theta, xbar, pars, vals, rho, unc_model)
     nx = numel(x);  m = numel(theta);
     Fx    = jacobian(f, x);                 % symbolic state Jacobian
@@ -238,25 +216,7 @@ end
 %     H_jk = D_thetaj[ tot_k ]
 %          = d(tot_k)/dtheta_j  +  sum_i d(tot_k)/dx_i * Sens(i,j)
 %  evaluated at the nominal equilibrium.
-%
-%  This H_jk is the *pure theta-space* curvature of J -- it comes from the
-%  nonlinearity of f/the equilibrium map, not from the delta -> theta map,
-%  and is IDENTICAL for 'mult' and 'log' uncertainty.
-%
-%  Chain rule to delta-space, for a per-parameter map theta_k = h_k(delta_k)
-%  (each theta_k depends on ONLY its own delta_k, as here):
-%    d2J/(ddelta_j ddelta_k)  =  H_jk * h_j'(0) * h_k'(0)              for j ~= k
-%    d2J/ddelta_k^2           =  H_kk * (h_k'(0))^2  +  tot_k * h_k''(0)   for j == k
-%  The off-diagonal formula is exactly what the original code computed
-%  (rho^2*thetabar_j*thetabar_k*H_jk), since h_j'(0) = rho*thetabar_j for BOTH
-%  models. The diagonal formula picks up an extra term  tot_k * h_k''(0)  which
-%  is the curvature of the delta -> theta map ITSELF:
-%    'mult' :  h_k(delta) = thetabar_k*(1+rho*delta)   -> h_k''(0) = 0            (no change)
-%    'log'  :  h_k(delta) = thetabar_k*exp(rho*delta)  -> h_k''(0) = rho^2*thetabar_k
-%  and since tot_k(evaluated at nominal) = W_k / (rho*thetabar_k), the log-model
-%  extra diagonal term simplifies to
-%    tot_k * rho^2*thetabar_k  =  rho * W_k
-%  which is added to Hblk{k,k} below when ctx.unc_model == 'log'.
+
 function [Hblk, Rmat] = remainder_hessian(ctx)
     m  = numel(ctx.theta);
     nx = numel(ctx.xb);
@@ -273,7 +233,7 @@ for i = 1:nx
 end
             Hnum = double(subs(Hjk, subVars, subVals));
             Hblk{j,k} = rho^2 * theta_nom(j) * theta_nom(k) * Hnum;   % delta-space scaling
-            % pure theta-space curvature term -- same for both uncertainty models
+            % pure theta-space curvature term 
 end
 end
 % add the delta->theta reparametrization curvature on the diagonal (log model only)
