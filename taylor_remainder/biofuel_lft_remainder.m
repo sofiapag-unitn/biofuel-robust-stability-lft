@@ -118,10 +118,7 @@ if runB
     run_mu(L_B2, R_B2, blk_B2, J0_B, qB2, ranksB, 'B (with remainder)');
 end
 
-
 %  build_lft_sym : symbolic total-derivative LFT, evaluated at xbar
-%  Now also returns Wblk (per-channel full W_k, before SVD splitting) and
-%  a ctx struct bundling everything WAY A / WAY B need 
 function [L_mat, R_mat, blk, J0, q, ranks, ctx] = build_lft_sym(f, x, theta, xbar, pars, vals, rho)
     nx = numel(x);  m = numel(theta);
     Fx    = jacobian(f, x);                 % symbolic state Jacobian
@@ -187,7 +184,7 @@ end
     Fxnum = matlabFunction(ctx.Fx, 'Vars', {ctx.x, ctx.pars});
     J0    = double(subs(ctx.Fx, [ctx.x; ctx.pars], [ctx.xb; ctx.vals]));
 
-    % corner set (mirrors the empirical-radius script's convention)
+    % corner set 
 if m <= 13
         Sgn = 2*(dec2bin(0:2^m-1) - '0') - 1;
 else
